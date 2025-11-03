@@ -1,0 +1,2 @@
+put all the output of training or testing here
+also put any logs generated during runtime
