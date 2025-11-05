@@ -1,7 +1,8 @@
-ultralytics
+ultralytics~=8.3.223
 opencv-python
 pycocotools
-tqdm
+tqdm~=4.67.1
 ruamel.yaml
 pandas
 matplotlib
+torch
