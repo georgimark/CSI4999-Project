@@ -1,9 +1,7 @@
-# live_feed.py — realtime webcam preview at 1280x720 with clean shutdown (macOS friendly).
-
+# live_feed.py
 import cv2
 
 def open_camera():
-    # Try AVFoundation backend first (best on macOS), then default.
     for src in (0, 1):
         cap = cv2.VideoCapture(src, cv2.CAP_AVFOUNDATION)
         if cap.isOpened():
@@ -20,11 +18,11 @@ def main():
         print("Could not open camera.")
         return
 
-    # Force 1280x720
+    # wanna force 1280x720
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-    # Show actual size
+    # wanna show act. size
     w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     print(f"Camera opened at {w}x{h}")
