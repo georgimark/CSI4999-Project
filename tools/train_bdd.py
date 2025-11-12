@@ -37,7 +37,7 @@ DEFAULT_CLASS_NAMES = [
     "traffic sign",
 ]
 
-# ---------------------- Helpers -------------------------
+# helpers
 
 def write_data_yaml(root: Path, names: List[str]) -> Path:
     """Create data.yaml if it doesn't exist."""
@@ -79,7 +79,7 @@ def sanity_check_dataset(root: Path) -> None:
 
     print(f"[CHECK] Train images: {len(train_imgs)} | Val images: {len(val_imgs)}")
 
-    # quick label coverage check (sampled)
+    # quick label cov. check
     def label_path_for(img: Path) -> Path:
         return (root / "labels" / img.parent.name / (img.stem + ".txt"))
 
@@ -100,7 +100,7 @@ def pick_device(device_flag: Optional[str]) -> str:
     if device_flag is not None:
         return device_flag
     if TORCH_AVAILABLE and torch.cuda.is_available():
-        return "0"  # first GPU
+        return "0" 
     return "cpu"
 
 
@@ -110,11 +110,11 @@ def export_all(model_path: Path, half: bool = True, opset: int = 12):
     from ultralytics import YOLO
     model = YOLO(model_path.as_posix())
 
-    # ONNX export (portable)
+    # ONNX export 
     onnx_out = model.export(format="onnx", opset=opset, half=half)
     print(f"[OK] ONNX export: {onnx_out}")
 
-    # TensorRT export (requires TensorRT installed); failure is ok
+    # TensorRT export.. failure is ook
     try:
         engine_out = model.export(format="engine", half=half)
         print(f"[OK] TensorRT export: {engine_out}")
@@ -122,7 +122,7 @@ def export_all(model_path: Path, half: bool = True, opset: int = 12):
         print(f"[NOTE] TensorRT export skipped/failed: {e}")
 
 
-# ---------------------- Main Train/Tune Pipeline -------------------------
+# main train/tune pipeline
 
 def train_baseline(
     model_ckpt: str,
@@ -189,7 +189,7 @@ def tune_hyperparams(
         save=True,
         name=name,
     )
-    # locate the tune directory and the best_hyperparameters.yaml if exists
+    # locate the tune direct. & the best_hyperparameters.yaml if exists
     tune_dir = Path(tune_results.save_dir)
     hyp_path = tune_dir / "best_hyperparameters.yaml"
     if not hyp_path.exists():
@@ -247,7 +247,7 @@ def evaluate_model(model_path: Path, data_yaml: Path, device: str):
         print("[INFO] Validation finished; see runs for full metrics/plots.")
 
 
-# ----------------------------- CLI --------------------------------------
+# CLI
 
 def main():
     ap = argparse.ArgumentParser(description="Train, tune, and export YOLOv11 on BDD100K (YOLO format).")
@@ -267,17 +267,17 @@ def main():
 
     ap.add_argument("--optimizer", type=str, default="SGD")
     ap.add_argument("--lr0", type=float, default=0.01)
-    ap.add_argument("--lrf", type=float, default=0.1)  # 0.01 -> 0.001
+    ap.add_argument("--lrf", type=float, default=0.1)
     ap.add_argument("--momentum", type=float, default=0.937)
     ap.add_argument("--weight-decay", type=float, default=0.0005, dest="weight_decay")
     ap.add_argument("--cos-lr", action="store_true", dest="cos_lr", default=True)
 
-    # Names / run IDs
+    # cames/run IDs
     ap.add_argument("--name-base", type=str, default="bdd11s_base", help="Run name for baseline training")
     ap.add_argument("--name-tune", type=str, default="bdd11s_tune", help="Run name for tuning stage")
     ap.add_argument("--name-final", type=str, default="bdd11s_tuned", help="Run name for final retrain with tuned hparams")
 
-    # Class names (optional override)
+    # class names
     ap.add_argument("--classes", type=str, nargs="*", default=None, help="Override class names (space-separated)")
 
     args = ap.parse_args()
@@ -294,7 +294,7 @@ def main():
     data_yaml = write_data_yaml(root, names)
     sanity_check_dataset(root)
 
-    # 2) Baseline training
+    # 2) baseline training
     best_base, base_run = train_baseline(
         model_ckpt=args.model,
         data_yaml=data_yaml,
@@ -313,10 +313,10 @@ def main():
         cos_lr=args.cos_lr,
     )
 
-    # Baseline evaluation
+    # baseline evaluation
     evaluate_model(best_base, data_yaml, device=device)
 
-    # 3) Optional tuning
+    # 3) opt. tuning
     if not args.no_tune:
         hyp_yaml, tune_dir = tune_hyperparams(
             base_model_ckpt=args.model,  # start tuner from the base checkpoint
@@ -328,7 +328,7 @@ def main():
             name=args.name_tune,
         )
 
-        # 4) Retrain once with tuned hyperparams
+        # 4) retrain once w/ tuned hyperparams
         best_tuned, tuned_run = retrain_with_hyp(
             model_ckpt=args.model,
             data_yaml=data_yaml,
@@ -342,10 +342,10 @@ def main():
             seed=args.seed,
         )
 
-        # Evaluate tuned model
+        # evaluate tuned model
         evaluate_model(best_tuned, data_yaml, device=device)
 
-        # 5) Export tuned model to ONNX (+ TensorRT if available)
+        # 5) export tuned model to ONNX
         export_all(best_tuned, half=True, opset=12)
 
         print("\n[SUMMARY]")
@@ -354,7 +354,7 @@ def main():
         print(f"Final run    : {tuned_run}")
         print(f"Best weights : {best_tuned}")
     else:
-        # Export baseline if skipping tuning
+        # export baseline if skipping tuning
         export_all(best_base, half=True, opset=12)
         print("\n[SUMMARY]")
         print(f"Baseline run : {base_run}")
