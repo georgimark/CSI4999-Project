@@ -10,7 +10,7 @@ def parse_args():
     ap.add_argument("--source", required=True, help="Path to input video (.mov/.mp4/...)")
     ap.add_argument("--out", default="outputs/annotated.mp4", help="Output video path (.mp4 recommended)")
     ap.add_argument("--device", default="0", help="'0' for first GPU or 'cpu'")
-    ap.add_argument("--imgsz", type=int, default=960)
+    ap.add_argument("--imgsz", type=int, default=1280)
     ap.add_argument("--conf", type=float, default=0.25)
     ap.add_argument("--half", action="store_true")
     ap.add_argument("--vid-stride", type=int, default=1, help="Process every Nth frame for speed (1 = all)")
