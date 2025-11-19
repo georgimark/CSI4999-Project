@@ -7,8 +7,16 @@ import time
 class VideoController:
     def __init__(self):
         self.cap = None
+        
         self.running = False
+        self.pause = False
+
         self.thread = None
+
+        self.fps_var = fps_var
+        self.conf_var = conf_var
+
+        self.last_time = 0
 
     
     def open_camera(self):
@@ -41,7 +49,16 @@ class VideoController:
             self.cap = None
         cv2.destroyAllWindows()
 
+    def toggle_pause(self):
+        if not self.running:
+            return
+        self.pause = not self.pause
+        print(f"[INFO] Pause set to {self.pause}")
+
     def video_loop(self):
+
+
+
         self.cap = self.open_camera()
         if not self.cap:
             print("[ERROR] Unable to open camera.")
@@ -54,10 +71,22 @@ class VideoController:
         cv2.namedWindow("Live Video", cv2.WINDOW_NORMAL)
 
         while self.running:
+            if self.paused:
+                cv2.waitKey(1)
+                continue
+
             ok, frame = self.cap.read()
             if not ok:
                 print("[WARN] Frame grab failed.")
                 break
+
+            now = time.time()
+            fps = 1 / (now - self.last_time) if self.last_time != 0 else 0
+            self.last_time = now
+            self.fps_var.set(f"{fps:.2f}")
+
+            conf = self.conf_var.get() / 100.0
+            print(f"[DEBUG] Current confidence threshold: {conf:.2f}", end="\r")
 
             cv2.imshow("Live Video", frame)
 
@@ -69,7 +98,9 @@ class VideoController:
             self.stop_video()
 
     def main():
-        controller = VideoController()
+        fps_var = tk.StringVar(value="0.00")
+        conf_var = tk.IntVar(value=50)
+        controller = VideoController(fps_var, conf_var)
 
         root = tk.Tk()
         root.title("Control Panel")
@@ -79,6 +110,11 @@ class VideoController:
 
         ttk.Button(root, text="Start Video", command=controller.start_video).pack(pady=5)
         ttk.Button(root, text="Stop Video", command=controller.stop_video).pack(pady=5)
+        ttk.Button(root, text="Pause/Resume", command=controller.toggle_pause).pack(pady=5)
+        ttk.Label(root, text="Confidence Threshold (%)").pack(pady=10)
+        ttk.Scale(root, from_=0, to=100, orient="Horizontal", variable=conf_var).pack(pady=5)
+        ttk.Label(root, text="FPS").pack(pady=10)
+        ttk.Label(root, textvariable=fps_var, font=("Arial", 14)).pack()
         ttk.Button(root, text="Quit", command=root.quit).pack(pady=20)
 
         root.mainloop()
