@@ -37,4 +37,31 @@ def main():
     frame_count = 0
     fps = 0.0
 
-    #in progress
+    try:
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                print("[WARN] frame grab failed.")
+                break
+
+            #yolo prediction for this frame
+            results = model.predict(
+                source=frame,
+                imgsz=IMGSZ,
+                conf=CONF,
+                device=DEVICE,
+                half=USE_HALF,
+                verbose=False,
+            )
+
+            annotated = results[0].plot()
+
+            #if yolo changed size, resize back to camera size
+            if annotated.shape[1] != w or annotated.shape[0] != h:
+                annotated = cv2.resize(
+                    annotated, (w, h), interpolation=cv2.INTER_LINEAR
+                )
+
+                
+if __name__ == "__main__":
+    main()
