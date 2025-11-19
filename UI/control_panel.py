@@ -1,6 +1,9 @@
 import threading
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog
+import os
+from datetime import datetime
 import cv2
 import time
 
@@ -8,6 +11,10 @@ class VideoController:
     def __init__(self):
         self.cap = None
         
+        self.recording = False
+        self.out = None
+        self.model_path = None
+
         self.running = False
         self.pause = False
 
@@ -44,6 +51,8 @@ class VideoController:
     def stop_video(self):
         print("[INFO] Stopping video...")
         self.running = False
+        self.paused = False
+        self.stop_recording()
         if self.cap:
             self.cap.release()
             self.cap = None
@@ -54,6 +63,37 @@ class VideoController:
             return
         self.pause = not self.pause
         print(f"[INFO] Pause set to {self.pause}")
+
+    def start_recording(self):
+        if not self.running or self.recording:
+            return
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        os.makedirs("videos", exist_ok=True)
+        filename = f"videos/recording_{timestamp}.mp4"
+        print(f"[INFO] Recording to {filename}...")
+
+        self.out = cv2.VideoWriter(
+            filename,
+            cv2.VideoWriter_fourcc(*'mp4v'),
+            30,
+            (1280, 720)
+        )
+        self.recording = True
+
+    def stop_recording(self):
+        if self.recording:
+            print("[INFO] Stopped recording.")
+            self.recording = False
+            if self.out:
+                self.out.release()
+                self.out = None
+
+    def select_model_file(self):
+        filetypes = [("Model Files", "*.pt *.onnx"), ("All Files", "*.*")]
+        path = filedialog.askopenfilename(title="Select YOLO File", filetypes=filetypes)
+        if path:
+            self.model_path = path
+            print(f"[INFO] Selected model: {path}")
 
     def video_loop(self):
 
@@ -88,6 +128,9 @@ class VideoController:
             conf = self.conf_var.get() / 100.0
             print(f"[DEBUG] Current confidence threshold: {conf:.2f}", end="\r")
 
+            if self.recording and self.out:
+                self.out.write(frame)
+
             cv2.imshow("Live Video", frame)
 
             k = cv2.waitKey(1) & 0xFF
@@ -111,6 +154,10 @@ class VideoController:
         ttk.Button(root, text="Start Video", command=controller.start_video).pack(pady=5)
         ttk.Button(root, text="Stop Video", command=controller.stop_video).pack(pady=5)
         ttk.Button(root, text="Pause/Resume", command=controller.toggle_pause).pack(pady=5)
+        ttk.Button(root, text="Start Recording", command=controller.start_recording).pack(pady=5)
+        ttk.Button(root, text="Stop Recording", command=controller.stop_recording).pack(pady=5)
+        ttk.Button(root, text="Select Model File", command=controller.select_model_file).pack(pady=10)
+        
         ttk.Label(root, text="Confidence Threshold (%)").pack(pady=10)
         ttk.Scale(root, from_=0, to=100, orient="Horizontal", variable=conf_var).pack(pady=5)
         ttk.Label(root, text="FPS").pack(pady=10)
