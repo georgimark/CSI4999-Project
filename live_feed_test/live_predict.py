@@ -62,6 +62,38 @@ def main():
                     annotated, (w, h), interpolation=cv2.INTER_LINEAR
                 )
 
-                
+            #fps counter
+            frame_count += 1
+            now = time.time()
+            if now - last_time >= 1.0:
+                fps = frame_count / (now - last_time)
+                frame_count = 0
+                last_time = now
+
+            if SHOW_FPS:
+                cv2.putText(
+                    annotated,
+                    f"FPS: {fps:.1f}",
+                    (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1.0,
+                    (0, 255, 0),
+                    2,
+                    cv2.LINE_AA,
+                )
+
+            cv2.imshow("YOLO Live", annotated)
+
+            k = cv2.waitKey(1) & 0xFF
+            if k in (27, ord("q")):  #ESC or q
+                break
+
+    finally:
+        cap.release()
+        cv2.destroyAllWindows()
+        print("[INFO] Live session ended.")
+
+
 if __name__ == "__main__":
     main()
+                
