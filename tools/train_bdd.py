@@ -28,8 +28,8 @@ except Exception:
 
 DEFAULT_CLASS_NAMES = [
     "person",
-    "car",
     "bus",
+    "car",
     "truck",
     "bicycle",
     "motorcycle",
@@ -255,7 +255,7 @@ def main():
     ap.add_argument("--model", type=str, default="yolo11s.pt", help="Base YOLOv11 checkpoint (e.g., yolo11n/s/m/l/x.pt)")
     ap.add_argument("--epochs", type=int, default=80, help="Baseline training epochs")
     ap.add_argument("--imgsz", type=int, default=1280, help="Training image size")
-    ap.add_argument("--batch", type=int, default=-1, help="Batch size (-1 = auto)")
+    ap.add_argument("--batch", type=int, default=12, help="Batch size (-1 = auto)")
     ap.add_argument("--workers", type=int, default=8, help="Dataloader workers")
     ap.add_argument("--device", type=str, default=None, help="Device string (e.g., '0', 'cpu'); default: auto")
     ap.add_argument("--seed", type=int, default=42, help="Random seed")
