@@ -7,13 +7,18 @@ from datetime import datetime
 import cv2
 import time
 
+from ultralytics import YOLO  # handles .pt / .onnx / .engine
+
+
 class VideoController:
-    def __init__(self):
+    def __init__(self, fps_var: tk.StringVar, conf_var: tk.IntVar, device: str = "0", imgsz: int = 1280):
         self.cap = None
-        
+
         self.recording = False
         self.out = None
+
         self.model_path = None
+        self.model = None  # YOLO model object
 
         self.running = False
         self.pause = False
@@ -23,11 +28,14 @@ class VideoController:
         self.fps_var = fps_var
         self.conf_var = conf_var
 
-        self.last_time = 0
+        self.last_time = 0.0
 
-    
+        self.device = device
+        self.imgsz = imgsz
+
     def open_camera(self):
-        for src in (0,1):
+        # Try AVFoundation sources first (macOS), then default 0
+        for src in (0, 1):
             cap = cv2.VideoCapture(src, cv2.CAP_AVFOUNDATION)
             if cap.isOpened():
                 return cap
@@ -36,22 +44,23 @@ class VideoController:
         cap = cv2.VideoCapture(0)
         if cap.isOpened():
             return cap
-        
+
         return None
-    
+
     def start_video(self):
         if self.running:
             return
-        
+
         print("[INFO] Starting video...")
         self.running = True
+        self.pause = False
         self.thread = threading.Thread(target=self.video_loop, daemon=True)
         self.thread.start()
 
     def stop_video(self):
         print("[INFO] Stopping video...")
         self.running = False
-        self.paused = False
+        self.pause = False
         self.stop_recording()
         if self.cap:
             self.cap.release()
@@ -74,9 +83,9 @@ class VideoController:
 
         self.out = cv2.VideoWriter(
             filename,
-            cv2.VideoWriter_fourcc(*'mp4v'),
+            cv2.VideoWriter_fourcc(*"mp4v"),
             30,
-            (1280, 720)
+            (1280, 720),
         )
         self.recording = True
 
@@ -89,16 +98,19 @@ class VideoController:
                 self.out = None
 
     def select_model_file(self):
-        filetypes = [("Model Files", "*.pt *.onnx"), ("All Files", "*.*")]
-        path = filedialog.askopenfilename(title="Select YOLO File", filetypes=filetypes)
+        filetypes = [("Model Files", "*.pt *.onnx *.engine"), ("All Files", "*.*")]
+        path = filedialog.askopenfilename(title="Select YOLO Model", filetypes=filetypes)
         if path:
             self.model_path = path
             print(f"[INFO] Selected model: {path}")
+            try:
+                self.model = YOLO(self.model_path)  # works for pt/onnx/engine
+                print("[INFO] Model loaded successfully.")
+            except Exception as e:
+                print(f"[ERROR] Failed to load model: {e}")
+                self.model = None
 
     def video_loop(self):
-
-
-
         self.cap = self.open_camera()
         if not self.cap:
             print("[ERROR] Unable to open camera.")
@@ -111,7 +123,7 @@ class VideoController:
         cv2.namedWindow("Live Video", cv2.WINDOW_NORMAL)
 
         while self.running:
-            if self.paused:
+            if self.pause:
                 cv2.waitKey(1)
                 continue
 
@@ -120,53 +132,73 @@ class VideoController:
                 print("[WARN] Frame grab failed.")
                 break
 
-            now = time.time()
-            fps = 1 / (now - self.last_time) if self.last_time != 0 else 0
-            self.last_time = now
+            start_time = time.time()
+            conf = self.conf_var.get() / 100.0
+
+            if self.model is not None:
+                try:
+                    results = self.model.predict(
+                        source=frame,
+                        device=self.device,
+                        conf=conf,
+                        imgsz=self.imgsz,
+                        verbose=False,
+                    )
+                    annotated_frame = results[0].plot()
+                except Exception as e:
+                    print(f"[ERROR] Inference failed: {e}")
+                    annotated_frame = frame
+            else:
+                annotated_frame = frame
+
+            # FPS for full loop (including inference)
+            dt = time.time() - start_time
+            fps = 1.0 / dt if dt > 0 else 0.0
             self.fps_var.set(f"{fps:.2f}")
 
-            conf = self.conf_var.get() / 100.0
-            print(f"[DEBUG] Current confidence threshold: {conf:.2f}", end="\r")
-
             if self.recording and self.out:
-                self.out.write(frame)
+                self.out.write(annotated_frame)
 
-            cv2.imshow("Live Video", frame)
+            cv2.imshow("Live Video", annotated_frame)
 
             k = cv2.waitKey(1) & 0xFF
-            if k in (27, ord('q')):
+            if k in (27, ord("q")):
                 self.stop_video()
                 break
 
-            self.stop_video()
+        self.stop_video()
 
-    def main():
-        fps_var = tk.StringVar(value="0.00")
-        conf_var = tk.IntVar(value=50)
-        controller = VideoController(fps_var, conf_var)
 
-        root = tk.Tk()
-        root.title("Control Panel")
-        root.geometry("300x200")
+def main():
+    root = tk.Tk()
+    root.title("Control Panel")
+    root.geometry("320x260")
 
-        ttk.Label(root, text="Video Controls", font=("Arial", 14)).pack(pady=10)
+    fps_var = tk.StringVar(value="0.00")
+    conf_var = tk.IntVar(value=50)
 
-        ttk.Button(root, text="Start Video", command=controller.start_video).pack(pady=5)
-        ttk.Button(root, text="Stop Video", command=controller.stop_video).pack(pady=5)
-        ttk.Button(root, text="Pause/Resume", command=controller.toggle_pause).pack(pady=5)
-        ttk.Button(root, text="Start Recording", command=controller.start_recording).pack(pady=5)
-        ttk.Button(root, text="Stop Recording", command=controller.stop_recording).pack(pady=5)
-        ttk.Button(root, text="Select Model File", command=controller.select_model_file).pack(pady=10)
-        
-        ttk.Label(root, text="Confidence Threshold (%)").pack(pady=10)
-        ttk.Scale(root, from_=0, to=100, orient="Horizontal", variable=conf_var).pack(pady=5)
-        ttk.Label(root, text="FPS").pack(pady=10)
-        ttk.Label(root, textvariable=fps_var, font=("Arial", 14)).pack()
-        ttk.Button(root, text="Quit", command=root.quit).pack(pady=20)
+    controller = VideoController(fps_var, conf_var, device="0", imgsz=1280)
 
-        root.mainloop()
+    ttk.Label(root, text="Video Controls", font=("Arial", 14)).pack(pady=10)
 
-        controller.stop_video()
+    ttk.Button(root, text="Start Video", command=controller.start_video).pack(pady=5)
+    ttk.Button(root, text="Stop Video", command=controller.stop_video).pack(pady=5)
+    ttk.Button(root, text="Pause/Resume", command=controller.toggle_pause).pack(pady=5)
+    ttk.Button(root, text="Start Recording", command=controller.start_recording).pack(pady=5)
+    ttk.Button(root, text="Stop Recording", command=controller.stop_recording).pack(pady=5)
+    ttk.Button(root, text="Select Model File", command=controller.select_model_file).pack(pady=5)
 
-    if __name__ == "__main__":
-        main()
+    ttk.Label(root, text="Confidence Threshold (%)").pack(pady=(10, 0))
+    ttk.Scale(root, from_=0, to=100, orient="horizontal", variable=conf_var).pack(pady=5)
+
+    ttk.Label(root, text="FPS").pack(pady=(10, 0))
+    ttk.Label(root, textvariable=fps_var, font=("Arial", 14)).pack()
+
+    ttk.Button(root, text="Quit", command=root.quit).pack(pady=10)
+
+    root.mainloop()
+    controller.stop_video()
+
+
+if __name__ == "__main__":
+    main()
