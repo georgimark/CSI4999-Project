@@ -33,8 +33,19 @@ class VideoController:
         self.device = device
         self.imgsz = imgsz
 
+        self.video_path = None  # <<< ADDED: stores selected video file path
+
     def open_camera(self):
         # Try AVFoundation sources first (macOS), then default 0
+        if self.video_path is not None:  # <<< CHANGED: prefer file source if selected
+            print(f"[INFO] Opening video file: {self.video_path}")
+            cap = cv2.VideoCapture(self.video_path)
+            if cap.isOpened():
+                return cap
+            print(f"[ERROR] Failed to open video file: {self.video_path}")
+            cap.release()
+            # fall through to camera if file fails
+
         for src in (0, 1):
             cap = cv2.VideoCapture(src, cv2.CAP_AVFOUNDATION)
             if cap.isOpened():
@@ -109,6 +120,15 @@ class VideoController:
             except Exception as e:
                 print(f"[ERROR] Failed to load model: {e}")
                 self.model = None
+
+    def select_video_file(self):  # <<< ADDED: choose a prerecorded video
+        filetypes = [("Video Files", "*.mp4 *.mov *.avi *.mkv"), ("All Files", "*.*")]
+        path = filedialog.askopenfilename(title="Select Video File", filetypes=filetypes)
+        if path:
+            self.video_path = path
+            print(f"[INFO] Selected video file: {path}")
+        else:
+            print("[INFO] No video file selected.")
 
     def video_loop(self):
         self.cap = self.open_camera()
@@ -187,6 +207,7 @@ def main():
     ttk.Button(root, text="Start Recording", command=controller.start_recording).pack(pady=5)
     ttk.Button(root, text="Stop Recording", command=controller.stop_recording).pack(pady=5)
     ttk.Button(root, text="Select Model File", command=controller.select_model_file).pack(pady=5)
+    ttk.Button(root, text="Select Video File", command=controller.select_video_file).pack(pady=5)  # <<< ADDED
 
     ttk.Label(root, text="Confidence Threshold (%)").pack(pady=(10, 0))
     ttk.Scale(root, from_=0, to=100, orient="horizontal", variable=conf_var).pack(pady=5)
