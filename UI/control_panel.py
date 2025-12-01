@@ -6,8 +6,34 @@ import os
 from datetime import datetime
 import cv2
 import time
-
+import json
+from PIL import Image, ImageTk
 from ultralytics import YOLO  # handles .pt / .onnx / .engine
+
+# ---- Config file for remembering settings ----
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
+
+def load_config():
+    """Load last used model path and confidence threshold."""
+    if not os.path.exists(CONFIG_FILE):
+        # default settings
+        return {"model_path": "", "conf_threshold": 25}  # 25 = 0.25
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        # if file is broken, fall back to defaults
+        return {"model_path": "", "conf_threshold": 25}
+
+def save_config(model_path, conf_threshold):
+    """Save current model path and confidence threshold."""
+    data = {
+        "model_path": model_path,
+        "conf_threshold": conf_threshold
+    }
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+# --------------------------------------------
 
 
 class VideoController:
@@ -16,6 +42,12 @@ class VideoController:
 
         self.recording = False
         self.out = None
+
+        # load last used settings (model path + confidence)
+        cfg = load_config()
+        self.model_path = cfg.get("model_path", "")
+        conf_var.set(cfg.get("conf_threshold", 25))
+
 
         self.model_path = None
         self.model = None  # YOLO model object
@@ -97,18 +129,33 @@ class VideoController:
                 self.out.release()
                 self.out = None
 
+
     def select_model_file(self):
-        filetypes = [("Model Files", "*.pt *.onnx *.engine"), ("All Files", "*.*")]
-        path = filedialog.askopenfilename(title="Select YOLO Model", filetypes=filetypes)
+        filetypes = [
+            ("Model Files", "*.pt *.onnx *.engine"),
+            ("All Files", "*.*")
+        ]
+
+        path = filedialog.askopenfilename(
+            title="Select YOLO Model",
+            filetypes=filetypes
+        )
+
         if path:
             self.model_path = path
             print(f"[INFO] Selected model: {path}")
+
             try:
                 self.model = YOLO(self.model_path)  # works for pt/onnx/engine
                 print("[INFO] Model loaded successfully.")
+
+                # ---- SAVE SETTINGS ----
+                save_config(self.model_path, self.conf_var.get())
+
             except Exception as e:
                 print(f"[ERROR] Failed to load model: {e}")
                 self.model = None
+
 
     def video_loop(self):
         self.cap = self.open_camera()
@@ -119,8 +166,6 @@ class VideoController:
 
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-
-        
 
         while self.running:
             if self.pause:
@@ -150,6 +195,7 @@ class VideoController:
                     annotated_frame = frame
             else:
                 annotated_frame = frame
+
 
             # FPS for full loop (including inference)
             dt = time.time() - start_time

@@ -1,0 +1,4 @@
+{
+  "model_path": "/Users/martinmilicaj/CSI4999-Project/runs/detect/bdd11s_base8/weights/best.pt",
+  "conf_threshold": 0
+}
