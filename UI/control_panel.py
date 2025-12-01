@@ -115,7 +115,7 @@ class VideoController:
             self.model_path = path
             print(f"[INFO] Selected model: {path}")
             try:
-                self.model = YOLO(self.model_path)  # works for pt/onnx/engine
+                self.model = YOLO(self.model_path)  #  works for pt/onnx/engine
                 print("[INFO] Model loaded successfully.")
             except Exception as e:
                 print(f"[ERROR] Failed to load model: {e}")
