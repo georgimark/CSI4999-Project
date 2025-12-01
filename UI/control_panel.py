@@ -120,11 +120,11 @@ class VideoController:
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 
-        cv2.namedWindow("Live Video", cv2.WINDOW_NORMAL)
+        
 
         while self.running:
             if self.pause:
-                cv2.waitKey(1)
+                time.sleep(0.05)
                 continue
 
             ok, frame = self.cap.read()
@@ -159,12 +159,25 @@ class VideoController:
             if self.recording and self.out:
                 self.out.write(annotated_frame)
 
-            cv2.imshow("Live Video", annotated_frame)
+            # Display frame in TKinter UI
+            frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
+            img = Image.fromarray(frame_rgb)
+            imgtk = ImageTk.PhotoImage(image=img)
 
-            k = cv2.waitKey(1) & 0xFF
-            if k in (27, ord("q")):
-                self.stop_video()
-                break
+            # Create the label on the first loop iteration
+            if not hasattr(self, 'video_label'):
+                self.video_label = tk.Label(self.root)
+                self.video_label.pack()
+
+            # Keep a reference to avoid garbage collection
+            self.video_label.imgtk = imgtk
+
+            # Update the label's image to the new frame
+            self.video_label.configure(image=imgtk)
+
+            # Update TKinter so changes appear immediately
+            self.root.update_idletasks()
+            self.root.update()
 
         self.stop_video()
 
