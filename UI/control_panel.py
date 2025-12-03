@@ -8,21 +8,21 @@ import cv2
 import time
 import json
 from PIL import Image, ImageTk
-from ultralytics import YOLO  # handles .pt / .onnx / .engine
+from ultralytics import YOLO  # handles .pt/.onnx/.engine
 
-# ---- Config file for remembering settings ----
+# config file for rem. files 
 CONFIG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
 
 def load_config():
     """Load last used model path and confidence threshold."""
     if not os.path.exists(CONFIG_FILE):
-        # default settings
-        return {"model_path": "", "conf_threshold": 25}  # 25 = 0.25
+        # def. setting
+        return {"model_path": "", "conf_threshold": 25}  
     try:
         with open(CONFIG_FILE, "r") as f:
             return json.load(f)
     except Exception:
-        # if file is broken, fall back to defaults
+        # if file is broken then fall back to def.
         return {"model_path": "", "conf_threshold": 25}
 
 def save_config(model_path, conf_threshold):
@@ -33,7 +33,7 @@ def save_config(model_path, conf_threshold):
     }
     with open(CONFIG_FILE, "w") as f:
         json.dump(data, f, indent=2)
-# --------------------------------------------
+
 
 
 class VideoController:
@@ -48,14 +48,14 @@ class VideoController:
         self.recording = False
         self.out = None
 
-        # load last used settings (model path + confidence)
+        # load last used set. 
         cfg = load_config()
         self.model_path = cfg.get("model_path", "")
         conf_var.set(cfg.get("conf_threshold", 25))
 
 
         self.model_path = None
-        self.model = None  # YOLO model object
+        self.model = None  
 
         self.running = False
         self.pause = False
@@ -63,7 +63,7 @@ class VideoController:
         self.thread = None
 
         self.device = "0"
-        # Removed hardcoded self.imgsz = 640
+  
 
         self.source_type = "camera"
         self.camera_index = 0
@@ -286,14 +286,14 @@ def main():
     fps_var = tk.StringVar(value="0.00")
     conf_var = tk.IntVar(value=25)
     status_var = tk.StringVar(value="Ready")
-    imgsz_var = tk.IntVar(value=1280)  # Default to 1280 to fix the error
+    imgsz_var = tk.IntVar(value=1280)  # Def. to 1280 to fix error
 
     controller = VideoController(root, fps_var, conf_var, status_var, imgsz_var)
 
     control_frame = tk.Frame(root, bd=2, relief=tk.GROOVE)
     control_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
 
-    # 1. Source
+    # 1. source
     src_frame = tk.LabelFrame(control_frame, text="Input Source")
     src_frame.pack(side=tk.LEFT, padx=5, fill=tk.Y)
 
@@ -307,12 +307,12 @@ def main():
 
     tk.Button(src_frame, text="Select Video File...", command=controller.set_source_file).pack(anchor="w", pady=2)
 
-    # 2. Model
+    # 2. model
     mod_frame = tk.LabelFrame(control_frame, text="Model")
     mod_frame.pack(side=tk.LEFT, padx=5, fill=tk.Y)
     tk.Button(mod_frame, text="Load .pt/.onnx", command=controller.select_model_file).pack(fill=tk.X)
 
-    # NEW: Img Size Input
+    # new Img Size Input
     sz_frame = tk.Frame(mod_frame)
     sz_frame.pack(pady=2)
     tk.Label(sz_frame, text="Img Size:").pack(side=tk.LEFT)
@@ -321,14 +321,14 @@ def main():
     tk.Label(mod_frame, text="Confidence %").pack()
     tk.Scale(mod_frame, from_=0, to=100, orient="horizontal", variable=conf_var).pack()
 
-    # 3. Actions
+    # 3. actions
     play_frame = tk.LabelFrame(control_frame, text="Actions")
     play_frame.pack(side=tk.LEFT, padx=5, fill=tk.Y)
     tk.Button(play_frame, text="START Video", bg="#ddffdd", command=controller.start_video).pack(fill=tk.X)
     tk.Button(play_frame, text="STOP Video", bg="#ffdddd", command=controller.stop_video).pack(fill=tk.X)
     tk.Button(play_frame, text="Pause", command=controller.toggle_pause).pack(fill=tk.X)
 
-    # 4. Info
+    # 4. info
     rec_frame = tk.LabelFrame(control_frame, text="Record / Info")
     rec_frame.pack(side=tk.LEFT, padx=5, fill=tk.Y)
     tk.Button(rec_frame, text="REC Start", command=controller.start_recording).pack(fill=tk.X)
