@@ -6,34 +6,9 @@ import os
 from datetime import datetime
 import cv2
 import time
-import json
 from PIL import Image, ImageTk
-from ultralytics import YOLO  # handles .pt/.onnx/.engine
 
-# config file for rem. files 
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "config.json")
-
-def load_config():
-    """Load last used model path and confidence threshold."""
-    if not os.path.exists(CONFIG_FILE):
-        # def. setting
-        return {"model_path": "", "conf_threshold": 25}  
-    try:
-        with open(CONFIG_FILE, "r") as f:
-            return json.load(f)
-    except Exception:
-        # if file is broken then fall back to def.
-        return {"model_path": "", "conf_threshold": 25}
-
-def save_config(model_path, conf_threshold):
-    """Save current model path and confidence threshold."""
-    data = {
-        "model_path": model_path,
-        "conf_threshold": conf_threshold
-    }
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
+from ultralytics import YOLO
 
 
 class VideoController:
@@ -48,22 +23,15 @@ class VideoController:
         self.recording = False
         self.out = None
 
-        # load last used set. 
-        cfg = load_config()
-        self.model_path = cfg.get("model_path", "")
-        conf_var.set(cfg.get("conf_threshold", 25))
-
-
         self.model_path = None
-        self.model = None  
+        self.model = None
 
         self.running = False
         self.pause = False
-
         self.thread = None
 
         self.device = "0"
-  
+        # Removed hardcoded self.imgsz = 640
 
         self.source_type = "camera"
         self.camera_index = 0
@@ -100,13 +68,12 @@ class VideoController:
 
         if cap.isOpened():
             return cap
-
         return None
 
     def start_video(self):
         if self.running:
             return
-        
+
         self.cap = self.open_capture()
         if not self.cap:
             self.status_var.set("Error: Could not open source.")
@@ -130,7 +97,6 @@ class VideoController:
         if self.cap:
             self.cap.release()
             self.cap = None
-        
 
         self.video_label.configure(image='')
         self.status_var.set("Stopped")
@@ -168,34 +134,19 @@ class VideoController:
                 self.out = None
             self.status_var.set("Recording saved.")
 
-
     def select_model_file(self):
-        filetypes = [
-            ("Model Files", "*.pt *.onnx *.engine"),
-            ("All Files", "*.*")
-        ]
-
-        path = filedialog.askopenfilename(
-            title="Select YOLO Model",
-            filetypes=filetypes
-        )
-
+        filetypes = [("Model Files", "*.pt *.onnx *.engine"), ("All Files", "*.*")]
+        path = filedialog.askopenfilename(title="Select YOLO Model", filetypes=filetypes)
         if path:
             self.model_path = path
             print(f"[INFO] Selected model: {path}")
-
             try:
                 self.model = YOLO(self.model_path)
                 self.status_var.set(f"Loaded: {os.path.basename(path)}")
-
-                # ---- SAVE SETTINGS ----
-                save_config(self.model_path, self.conf_var.get())
-
             except Exception as e:
                 print(f"[ERROR] Failed to load model: {e}")
                 self.status_var.set("Error loading model")
                 self.model = None
-
 
     def video_loop(self):
         try:
@@ -212,7 +163,7 @@ class VideoController:
 
             start_time = time.time()
             ok, frame = self.cap.read()
-            
+
             if not ok:
                 if self.source_type == "file":
                     print("[INFO] Video ended, looping...")
@@ -222,7 +173,6 @@ class VideoController:
                     print("[WARN] Camera disconnected.")
                     break
 
-            
             conf = self.conf_var.get() / 100.0
 
             # GET CURRENT IMAGE SIZE FROM GUI
@@ -244,25 +194,19 @@ class VideoController:
                     annotated_frame = results[0].plot()
                 except Exception as e:
                     print(f"[ERROR] Inference failed: {e}")
-                    
+
             disp_w, disp_h = 1280, 720
             if annotated_frame.shape[1] != disp_w or annotated_frame.shape[0] != disp_h:
                 annotated_frame = cv2.resize(annotated_frame, (disp_w, disp_h))
 
-            
-
             if self.recording and self.out:
                 self.out.write(annotated_frame)
 
-            
             frame_rgb = cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB)
             img = Image.fromarray(frame_rgb)
             imgtk = ImageTk.PhotoImage(image=img)
 
-            
             self.video_label.imgtk = imgtk
-
-           
             self.video_label.configure(image=imgtk)
 
             dt = time.time() - start_time
@@ -286,14 +230,14 @@ def main():
     fps_var = tk.StringVar(value="0.00")
     conf_var = tk.IntVar(value=25)
     status_var = tk.StringVar(value="Ready")
-    imgsz_var = tk.IntVar(value=1280)  # Def. to 1280 to fix error
+    imgsz_var = tk.IntVar(value=1280)  # Default to 1280 to fix the error
 
     controller = VideoController(root, fps_var, conf_var, status_var, imgsz_var)
 
     control_frame = tk.Frame(root, bd=2, relief=tk.GROOVE)
     control_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
 
-    # 1. source
+    # 1. Source
     src_frame = tk.LabelFrame(control_frame, text="Input Source")
     src_frame.pack(side=tk.LEFT, padx=5, fill=tk.Y)
 
@@ -307,12 +251,12 @@ def main():
 
     tk.Button(src_frame, text="Select Video File...", command=controller.set_source_file).pack(anchor="w", pady=2)
 
-    # 2. model
+    # 2. Model
     mod_frame = tk.LabelFrame(control_frame, text="Model")
     mod_frame.pack(side=tk.LEFT, padx=5, fill=tk.Y)
     tk.Button(mod_frame, text="Load .pt/.onnx", command=controller.select_model_file).pack(fill=tk.X)
 
-    # new Img Size Input
+    # NEW: Img Size Input
     sz_frame = tk.Frame(mod_frame)
     sz_frame.pack(pady=2)
     tk.Label(sz_frame, text="Img Size:").pack(side=tk.LEFT)
@@ -321,14 +265,14 @@ def main():
     tk.Label(mod_frame, text="Confidence %").pack()
     tk.Scale(mod_frame, from_=0, to=100, orient="horizontal", variable=conf_var).pack()
 
-    # 3. actions
+    # 3. Actions
     play_frame = tk.LabelFrame(control_frame, text="Actions")
     play_frame.pack(side=tk.LEFT, padx=5, fill=tk.Y)
     tk.Button(play_frame, text="START Video", bg="#ddffdd", command=controller.start_video).pack(fill=tk.X)
     tk.Button(play_frame, text="STOP Video", bg="#ffdddd", command=controller.stop_video).pack(fill=tk.X)
     tk.Button(play_frame, text="Pause", command=controller.toggle_pause).pack(fill=tk.X)
 
-    # 4. info
+    # 4. Info
     rec_frame = tk.LabelFrame(control_frame, text="Record / Info")
     rec_frame.pack(side=tk.LEFT, padx=5, fill=tk.Y)
     tk.Button(rec_frame, text="REC Start", command=controller.start_recording).pack(fill=tk.X)
