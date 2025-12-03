@@ -47,6 +47,12 @@ Ensure you have Python installed, then install the necessary dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+Note: To run on gpu consult with correct installation guide on pytorch.
+
+For an RTX 5090 run:
+```bash
+pip3 install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu128
+```
 
 ---
 
