@@ -79,9 +79,9 @@ def gather_inputs(input_path: Path):
 def main():
     ap = argparse.ArgumentParser(description="Batch annotate videos with YOLO and save MP4 outputs.")
     ap.add_argument("--input", required=True, help="Path to a directory OR a single video file")
-    ap.add_argument("--model", default="../runs/detect/bdd11s_base/weights/best.pt", help="Path to .pt weights")
-    ap.add_argument("--out-dir", default="../outputs", help="Output directory for annotated videos")
-    ap.add_argument("--device", default="cpu", help="'0' for first GPU or 'cpu'")
+    ap.add_argument("--model", default="./runs/detect/bdd11s_base/weights/best.pt", help="Path to .pt weights")
+    ap.add_argument("--out-dir", default="./outputs", help="Output directory for annotated videos")
+    ap.add_argument("--device", default="0", help="'0' for first GPU or 'cpu'")
     ap.add_argument("--imgsz", type=int, default=1280)
     ap.add_argument("--conf", type=float, default=0.25)
     ap.add_argument("--half", action="store_true")
