@@ -7,3 +7,11 @@
 - runs: output of training and validation
 - tools: utilities used
 - src: project code
+
+- ## Contributors
+- Mark Georgi (georgimark)
+- Patrick Robin (PatRobin02)
+- Will Kumpula (wmkumpula)
+- Alexandra Ivezaj (Alexandraivezaj) 
+- Rita M
+
