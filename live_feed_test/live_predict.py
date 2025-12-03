@@ -58,6 +58,18 @@ def count_objects(results):
       
    return stats
 
+#Display object detection statistics in a format
+def print_stats(stats):
+   if not stats:
+       print("NO object detected.")
+      
+   else:
+       for label, count in stats.items():
+           print(f"{label}: {count}")
+          
+       print(f"TOTAL: {sum(stats.values())}")
+
+
 
 
 
