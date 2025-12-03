@@ -43,6 +43,21 @@ def play_alert():
        winsound.Beep(1000,200)
    else:
        print(f"[ALERT] Person detected.")
+       
+#counts detected objects per class
+def count_objects(results):
+   stats = {}
+  
+   for box in results[0].boxes:
+       cls_id = int(box.cls[0])
+       label = results[0].names[cls_id]
+      
+       if label not in stats:
+           stats[label] = 0
+       stats[label] +=1
+      
+   return stats
+
 
 
 
