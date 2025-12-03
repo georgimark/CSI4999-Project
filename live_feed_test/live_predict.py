@@ -6,7 +6,17 @@
 import time
 from ultralytics import YOLO
 import cv2
+
+import os
 from live_feed import open_camera
+from datetime import datetime
+
+# Sound alert support
+try:
+   import winsound
+   SOUND_AVAILABLE = True
+except:
+   SOUND_AVAILABLE = False
 
 
 MODEL_PATH = ""
@@ -15,6 +25,8 @@ IMGSZ = 960
 CONF = 0.25
 USE_HALF = False
 SHOW_FPS = True
+
+
 
 
 def main():
