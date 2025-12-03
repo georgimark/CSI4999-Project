@@ -37,9 +37,14 @@ def save_config(model_path, conf_threshold):
 
 
 class VideoController:
-    def __init__(self, fps_var: tk.StringVar, conf_var: tk.IntVar, device: str = "0", imgsz: int = 1280):
-        self.cap = None
+    def __init__(self, root, fps_var, conf_var, status_var, imgsz_var):
+        self.root = root
+        self.fps_var = fps_var
+        self.conf_var = conf_var
+        self.status_var = status_var
+        self.imgsz_var = imgsz_var
 
+        self.cap = None
         self.recording = False
         self.out = None
 
@@ -57,23 +62,42 @@ class VideoController:
 
         self.thread = None
 
-        self.fps_var = fps_var
-        self.conf_var = conf_var
+        self.device = "0"
+        # Removed hardcoded self.imgsz = 640
 
-        self.last_time = 0.0
+        self.source_type = "camera"
+        self.camera_index = 0
+        self.video_file_path = ""
 
-        self.device = device
-        self.imgsz = imgsz
+        self.video_label = tk.Label(root, bg="black")
+        self.video_label.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-    def open_camera(self):
-        # Try AVFoundation sources first (macOS), then default 0
-        for src in (0, 1):
-            cap = cv2.VideoCapture(src, cv2.CAP_AVFOUNDATION)
-            if cap.isOpened():
-                return cap
-            cap.release()
+    def set_source_camera(self, index_str):
+        try:
+            self.camera_index = int(index_str)
+            self.source_type = "camera"
+            self.status_var.set(f"Source set: Camera {self.camera_index}")
+        except ValueError:
+            self.status_var.set("Invalid Camera Index")
 
-        cap = cv2.VideoCapture(0)
+    def set_source_file(self):
+        filetypes = [("Video Files", "*.mp4 *.mov *.avi *.mkv"), ("All Files", "*.*")]
+        path = filedialog.askopenfilename(title="Select Video File", filetypes=filetypes)
+        if path:
+            self.video_file_path = path
+            self.source_type = "file"
+            self.status_var.set(f"Source set: {os.path.basename(path)}")
+
+    def open_capture(self):
+        if self.source_type == "camera":
+            cap = cv2.VideoCapture(self.camera_index)
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+        else:
+            if not os.path.exists(self.video_file_path):
+                return None
+            cap = cv2.VideoCapture(self.video_file_path)
+
         if cap.isOpened():
             return cap
 
@@ -82,28 +106,41 @@ class VideoController:
     def start_video(self):
         if self.running:
             return
+        
+        self.cap = self.open_capture()
+        if not self.cap:
+            self.status_var.set("Error: Could not open source.")
+            return
 
         print("[INFO] Starting video...")
         self.running = True
         self.pause = False
         self.thread = threading.Thread(target=self.video_loop, daemon=True)
         self.thread.start()
+        self.status_var.set("Running...")
 
     def stop_video(self):
         print("[INFO] Stopping video...")
         self.running = False
         self.pause = False
         self.stop_recording()
+
+        time.sleep(0.2)
+
         if self.cap:
             self.cap.release()
             self.cap = None
-        cv2.destroyAllWindows()
+        
+
+        self.video_label.configure(image='')
+        self.status_var.set("Stopped")
 
     def toggle_pause(self):
         if not self.running:
             return
         self.pause = not self.pause
-        print(f"[INFO] Pause set to {self.pause}")
+        state = "Paused" if self.pause else "Running"
+        self.status_var.set(state)
 
     def start_recording(self):
         if not self.running or self.recording:
