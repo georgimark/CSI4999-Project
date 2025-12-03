@@ -36,6 +36,14 @@ def save_screenshots(frame):
   
    cv2.imwrite(path, frame)
    print(f"[INFO] Screenshot saved: {path}")
+   
+#Sound alert feature
+def play_alert():
+   if SOUND_AVAILABLE:
+       winsound.Beep(1000,200)
+   else:
+       print(f"[ALERT] Person detected.")
+
 
 
 def main():
