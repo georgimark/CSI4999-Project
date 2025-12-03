@@ -26,7 +26,16 @@ CONF = 0.25
 USE_HALF = False
 SHOW_FPS = True
 
-
+#Screenshoot capture Feature
+def save_screenshots(frame):
+   folder = "captures_screenshots"
+   os.makedirs(folder, exist_ok=True)
+  
+   filename = datetime.now().strftime("frame_%Y%-m-%d_%H-%M-$S.jpg")
+   path = os.path.join(folder, filename)
+  
+   cv2.imwrite(path, frame)
+   print(f"[INFO] Screenshot saved: {path}")
 
 
 def main():
