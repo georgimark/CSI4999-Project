@@ -18,15 +18,22 @@ SHOW_FPS = True
 
 
 def main():
+    # added basic check + config print
+    if not MODEL_PATH:
+        print("[ERR] MODEL_PATH is empty. Please set MODEL_PATH at the top of live_predict.py.")
+        return
+
     print(f"[INFO] loading YOLO11 model: {MODEL_PATH}")
+    print(f"[INFO] settings -> device={DEVICE}, imgsz={IMGSZ}, conf={CONF}")
     model = YOLO(MODEL_PATH)
+
 
     cap = open_camera()
     if cap is None or not cap.isOpened():
         print("[ERR] coulnt open camera.")
         return
 
-    #just read whatever resolution the camera gives us
+    # just read whatever resolution the camera gives us
     w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     print(f"[INFO] camera opened at {w}x{h}")
@@ -44,7 +51,7 @@ def main():
                 print("[WARN] frame grab failed.")
                 break
 
-            #yolo prediction for this frame
+            # yolo prediction for this frame
             results = model.predict(
                 source=frame,
                 imgsz=IMGSZ,
@@ -56,13 +63,13 @@ def main():
 
             annotated = results[0].plot()
 
-            #if yolo changed size, resize back to camera size
+            # if yolo changed size, resize back to camera size
             if annotated.shape[1] != w or annotated.shape[0] != h:
                 annotated = cv2.resize(
                     annotated, (w, h), interpolation=cv2.INTER_LINEAR
                 )
 
-            #fps counter
+            # fps counter
             frame_count += 1
             now = time.time()
             if now - last_time >= 1.0:
