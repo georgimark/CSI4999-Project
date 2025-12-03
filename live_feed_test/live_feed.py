@@ -36,11 +36,16 @@ def main():
                 print("Frame grab failed.")
                 break
 
+            # calc. FPS for debug./monitoring
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            print(f"[Alexandra] Current FPS: {fps}")
+
             cv2.imshow("Live", frame)
 
             k = cv2.waitKey(1) & 0xFF
-            if k in (27, ord('q')):  # ESC or q
+            if k in (27, ord('q')):
                 break
+
     finally:
         cap.release()
         cv2.destroyAllWindows()
