@@ -8,7 +8,7 @@
 - tools: utilities used
 - src: project code
 
-- ## Contributors
+- ## Contributors with gethub usernames
 - Mark Georgi (georgimark)
 - Patrick Robin (PatRobin02)
 - Will Kumpula (wmkumpula)
