@@ -28,6 +28,10 @@ def main():
     print(f"Camera opened at {w}x{h}")
 
     cv2.namedWindow("Live", cv2.WINDOW_NORMAL)
+    
+    
+    recording = False
+    out = None
 
     try:
         while True:
@@ -39,15 +43,29 @@ def main():
             # calc. FPS for debug./monitoring
             fps = cap.get(cv2.CAP_PROP_FPS)
             print(f"[Alexandra] Current FPS: {fps}")
+            
+            if recording and out is not None:
+                out.write(frame)
 
             cv2.imshow("Live", frame)
 
             k = cv2.waitKey(1) & 0xFF
             if k in (27, ord('q')):
                 break
-
+            elif k ==ord("r"):
+                recording = not recording
+                if recording:
+                    out = cv2.VideoWriter("recorded_video.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, (w,h ))
+                    print("Recording started...")
+                    
+                else:
+                    out.release()
+                    out = None
+                    print("Recording stopped.")
     finally:
         cap.release()
+        if out is not None:
+            out.release()
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
