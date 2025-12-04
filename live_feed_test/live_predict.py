@@ -6,7 +6,17 @@
 import time
 from ultralytics import YOLO
 import cv2
+
+import os
 from live_feed import open_camera
+from datetime import datetime
+
+# Sound alert support
+try:
+   import winsound
+   SOUND_AVAILABLE = True
+except:
+   SOUND_AVAILABLE = False
 
 
 MODEL_PATH = ""
@@ -15,6 +25,52 @@ IMGSZ = 960
 CONF = 0.25
 USE_HALF = False
 SHOW_FPS = True
+
+#Screenshoot capture Feature
+def save_screenshots(frame):
+   folder = "captures_screenshots"
+   os.makedirs(folder, exist_ok=True)
+  
+   filename = datetime.now().strftime("frame_%Y%-m-%d_%H-%M-$S.jpg")
+   path = os.path.join(folder, filename)
+  
+   cv2.imwrite(path, frame)
+   print(f"[INFO] Screenshot saved: {path}")
+   
+#Sound alert feature
+def play_alert():
+   if SOUND_AVAILABLE:
+       winsound.Beep(1000,200)
+   else:
+       print(f"[ALERT] Person detected.")
+       
+#counts detected objects per class
+def count_objects(results):
+   stats = {}
+  
+   for box in results[0].boxes:
+       cls_id = int(box.cls[0])
+       label = results[0].names[cls_id]
+      
+       if label not in stats:
+           stats[label] = 0
+       stats[label] +=1
+      
+   return stats
+
+#Display object detection statistics in a format
+def print_stats(stats):
+   if not stats:
+       print("NO object detected.")
+      
+   else:
+       for label, count in stats.items():
+           print(f"{label}: {count}")
+          
+       print(f"TOTAL: {sum(stats.values())}")
+
+
+
 
 
 def main():

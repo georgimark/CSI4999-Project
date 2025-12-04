@@ -28,6 +28,12 @@ def main():
     print(f"Camera opened at {w}x{h}")
 
     cv2.namedWindow("Live", cv2.WINDOW_NORMAL)
+    
+    
+    recording = False
+    out = None
+    
+    gray_mode = False
 
     try:
         while True:
@@ -39,15 +45,39 @@ def main():
             # calc. FPS for debug./monitoring
             fps = cap.get(cv2.CAP_PROP_FPS)
             print(f"[Alexandra] Current FPS: {fps}")
+            
+            if gray_mode:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            
+            
+            if recording and out is not None:
+                out.write(frame)
 
             cv2.imshow("Live", frame)
 
             k = cv2.waitKey(1) & 0xFF
             if k in (27, ord('q')):
                 break
-
+            elif k ==ord("r"):
+                recording = not recording
+                if recording:
+                    out = cv2.VideoWriter("recorded_video.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, (w,h ))
+                    print("Recording started...")
+                    
+                else:
+                    out.release()
+                    out = None
+                    print("Recording stopped.")
+            elif k == ord('s'):
+                cv2.imwrite  ("snapshot.png", frame)
+                print("snapshot saved.")
+            elif k == ord('f'):
+                gray_mode = not gray_mode
+                print(f"Grayscale mode {'ON' if gray_mode else 'OFF'} ")
     finally:
         cap.release()
+        if out is not None:
+            out.release()
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
